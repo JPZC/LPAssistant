@@ -11,6 +11,14 @@ QWidget {
   border-radius: 18px;
 }
 
+#HeaderCard QLabel {
+    background-color: transparent;
+}
+
+QLabel {
+    background-color: transparent;
+}
+
 #Title {
   font-size: 30px;
   font-weight: 600;
