@@ -1,0 +1,63 @@
+QWidget {
+  background-color: #0b0f1f;
+  color: #e6e9f2;
+  font-family: "Segoe UI";
+  font-size: 14px;
+}
+
+#HeaderCard, #ControlsCard {
+  background-color: #12172b;
+  border: 1px solid #1c2745;
+  border-radius: 18px;
+}
+
+#Title {
+  font-size: 30px;
+  font-weight: 600;
+}
+
+#Subtitle {
+  color: #a7b0c7;
+  font-size: 15px;
+}
+
+#StatusBadge {
+  background-color: #12172b;
+  border-radius: 16px;
+  border: 1px solid #1c2745;
+  max-width: 200px;
+}
+
+#StatusBadge[mode="Escuchando"] {
+  background-color: #0e2a1f;
+  border: 1px solid #1b6e4a;
+}
+
+#StatusBadge[mode="En espera"] {
+  background-color: #2a1c0e;
+  border: 1px solid #8a4c14;
+}
+
+#StatusBadge[mode="Modelo no encontrado"],
+#StatusBadge[mode="Error de modelo"] {
+  background-color: #2b1010;
+  border: 1px solid #7b1f1f;
+}
+
+#StatusLabel {
+  font-weight: 600;
+}
+
+#CommandLabel {
+  font-weight: 600;
+}
+
+#CommandDesc {
+  color: #a7b0c7;
+}
+
+#LogPanel {
+  background-color: #0f1426;
+  border: 1px solid #1c2745;
+  border-radius: 12px;
+}
