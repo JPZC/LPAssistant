@@ -54,39 +54,79 @@ class MainWindow(QtWidgets.QMainWindow):
 
         controls = QtWidgets.QFrame()
         controls.setObjectName("ControlsCard")
-        controls_layout = QtWidgets.QGridLayout(controls)
-        controls_layout.setContentsMargins(24, 24, 24, 24)
-        controls_layout.setHorizontalSpacing(16)
-        controls_layout.setVerticalSpacing(12)
+        controls_layout = QtWidgets.QVBoxLayout(controls)
+        controls_layout.setContentsMargins(20, 20, 20, 20)
+        controls_layout.setSpacing(12)
 
-        commands = [
-            ("Escuchar", "Inicia la transcripción global con puntuación por voz."),
-            ("Escuchar libremente", "Dictado sin comandos ni puntuación por voz."),
-            ("Escuchar comandos", "Escucha comandos sin transcribir."),
-            ("Detener", "Detiene la transcripción."),
-            ("Seleccionar todo", "Envía CTRL + A."),
-            ("Copiar", "Envía CTRL + C."),
-            ("Pegar", "Envía CTRL + V."),
-            ("Deshacer / Rehacer", "Envía CTRL + Z / CTRL + Y."),
-            ("Guardar", "Envía CTRL + S."),
-            ("Cerrar pestaña / ventana", "Envía CTRL + W / ALT + F4."),
-            ("Salto de línea", "Inserta una nueva línea."),
-            ("Borrar última palabra", "Envía CTRL + Backspace."),
-            ("Mover cursor (izq/der/arriba/abajo)", "Usa flechas del teclado."),
-            ("Mover cursor palabra (izq/der)", "Envía CTRL + flecha."),
-            ("Inicio/Fin de línea", "Usa teclas Home y End."),
-            ("Página arriba / abajo", "Usa Page Up / Page Down."),
-            ("Mover teclado (atrás)", "Usa Tab / Shift + Tab."),
-            ("Mejorar texto", "Corrige ortografía y puntuación."),
-            ("Puntuación", "Punto, coma, dos puntos, signos y más en dictado."),
-        ]
-        for row, (command, description) in enumerate(commands):
-            cmd_label = QtWidgets.QLabel(command)
-            cmd_label.setObjectName("CommandLabel")
-            desc_label = QtWidgets.QLabel(description)
-            desc_label.setObjectName("CommandDesc")
-            controls_layout.addWidget(cmd_label, row, 0)
-            controls_layout.addWidget(desc_label, row, 1)
+        toolbox = QtWidgets.QToolBox()
+        toolbox.setObjectName("CommandSections")
+        controls_layout.addWidget(toolbox)
+
+        def add_section(title: str, items: list[tuple[str, str]]) -> None:
+            page = QtWidgets.QWidget()
+            grid = QtWidgets.QGridLayout(page)
+            grid.setContentsMargins(16, 16, 16, 16)
+            grid.setHorizontalSpacing(16)
+            grid.setVerticalSpacing(10)
+            for row, (command, description) in enumerate(items):
+                cmd_label = QtWidgets.QLabel(command)
+                cmd_label.setObjectName("CommandLabel")
+                desc_label = QtWidgets.QLabel(description)
+                desc_label.setObjectName("CommandDesc")
+                desc_label.setWordWrap(True)
+                grid.addWidget(cmd_label, row, 0)
+                grid.addWidget(desc_label, row, 1)
+            toolbox.addItem(page, title)
+
+        add_section(
+            "Modos de escucha",
+            [
+                ("Escuchar", "Inicia la transcripción global con puntuación por voz."),
+                ("Escuchar libremente", "Dictado sin comandos ni puntuación por voz."),
+                ("Escuchar comandos", "Escucha comandos sin transcribir."),
+                ("Detener", "Detiene la transcripción."),
+            ],
+        )
+        add_section(
+            "Edición rápida",
+            [
+                ("Seleccionar todo", "Envía CTRL + A."),
+                ("Copiar", "Envía CTRL + C."),
+                ("Pegar", "Envía CTRL + V."),
+                ("Deshacer / Rehacer", "Envía CTRL + Z / CTRL + Y."),
+                ("Guardar", "Envía CTRL + S."),
+                ("Cerrar pestaña / ventana", "Envía CTRL + W / ALT + F4."),
+                ("Salto de línea", "Inserta una nueva línea."),
+                ("Borrar última palabra", "Envía CTRL + Backspace."),
+                ("Mejorar texto", "Corrige ortografía y puntuación."),
+            ],
+        )
+        add_section(
+            "Navegación",
+            [
+                ("Mover cursor (izq/der/arriba/abajo)", "Usa flechas del teclado."),
+                ("Mover cursor palabra (izq/der)", "Envía CTRL + flecha."),
+                ("Inicio/Fin de línea", "Usa teclas Home y End."),
+                ("Página arriba / abajo", "Usa Page Up / Page Down."),
+                ("Mover teclado (atrás)", "Usa Tab / Shift + Tab."),
+            ],
+        )
+        add_section(
+            "Ratón",
+            [
+                ("Clic / Click", "Click izquierdo sobre la posición actual del cursor."),
+                ("Clic derecho / Click derecho", "Abre el menú contextual."),
+                ("Doble clic / Doble click", "Ejecuta doble click izquierdo."),
+                ("Clic pulsado / Click pulsado", "Mantiene el click por unos instantes."),
+            ],
+        )
+        add_section(
+            "Puntuación en dictado",
+            [
+                ("Puntuación", "Punto, coma, dos puntos, signos y más en dictado."),
+                ("Frases comunes", "Di \"punto\", \"coma\", \"dos puntos\" o \"puntos suspensivos\"."),
+            ],
+        )
 
         self.log = QtWidgets.QTextEdit()
         self.log.setReadOnly(True)

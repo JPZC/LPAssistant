@@ -25,17 +25,27 @@ QWidget {
   background-color: #12172b;
   border-radius: 16px;
   border: 1px solid #1c2745;
-  max-width: 200px;
-}
-
-#StatusBadge[mode="Escuchando"] {
-  background-color: #0e2a1f;
-  border: 1px solid #1b6e4a;
+  max-width: 260px;
 }
 
 #StatusBadge[mode="En espera"] {
   background-color: #2a1c0e;
   border: 1px solid #8a4c14;
+}
+
+#StatusBadge[mode="Escuchando (dictado)"] {
+  background-color: #0e243a;
+  border: 1px solid #2e6fa3;
+}
+
+#StatusBadge[mode="Escuchando (libre)"] {
+  background-color: #1f1f3a;
+  border: 1px solid #5152b9;
+}
+
+#StatusBadge[mode="Escuchando comandos"] {
+  background-color: #0e2a1f;
+  border: 1px solid #1b6e4a;
 }
 
 #StatusBadge[mode="Modelo no encontrado"],
@@ -60,4 +70,18 @@ QWidget {
   background-color: #0f1426;
   border: 1px solid #1c2745;
   border-radius: 12px;
+}
+
+#CommandSections::tab {
+  background-color: #10162c;
+  border: 1px solid #1c2745;
+  border-radius: 10px;
+  padding: 8px 14px;
+  margin-top: 6px;
+  font-weight: 600;
+}
+
+#CommandSections::tab:selected {
+  background-color: #1a2341;
+  border: 1px solid #2e3f68;
 }
