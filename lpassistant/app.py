@@ -27,7 +27,7 @@ class SpeechWorker(threading.Thread):
         self.events = events
         self.log = log
         self._stop_event = threading.Event()
-        self._listening_mode = False
+        self._mode = "idle"
         self._keyboard = Controller()
         self._tool: Optional[language_tool_python.LanguageTool] = None
 
@@ -37,42 +37,54 @@ class SpeechWorker(threading.Thread):
     def _emit_log(self, message: str) -> None:
         self.log.put(message)
 
-    def _toggle_listen(self, state: bool) -> None:
-        self._listening_mode = state
-        status = "Escuchando" if state else "En espera"
-        self.events.put(status)
+    def _set_mode(self, mode: str) -> None:
+        self._mode = mode
+        status_map = {
+            "idle": "En espera",
+            "dictation": "Escuchando (dictado)",
+            "commands": "Escuchando comandos",
+        }
+        self.events.put(status_map.get(mode, "En espera"))
+
+    @staticmethod
+    def _normalize_text(text: str) -> str:
+        return re.sub(r"\s+", " ", text.lower()).strip()
 
     def _handle_command(self, text: str) -> bool:
-        normalized = text.lower().strip()
-        if "escuchar" in normalized and not self._listening_mode:
-            self._emit_log("Activando modo escucha.")
-            self._toggle_listen(True)
+        normalized = self._normalize_text(text)
+        if normalized == "escuchar" and self._mode != "dictation":
+            self._emit_log("Activando modo dictado.")
+            self._set_mode("dictation")
             return True
-        if "detener" in normalized and self._listening_mode:
-            self._emit_log("Deteniendo modo escucha.")
-            self._toggle_listen(False)
+        if normalized == "escuchar comandos" and self._mode != "commands":
+            self._emit_log("Activando modo comandos.")
+            self._set_mode("commands")
             return True
-        if not self._listening_mode:
+        if normalized == "detener" and self._mode != "idle":
+            self._emit_log("Deteniendo escucha.")
+            self._set_mode("idle")
+            return True
+        if self._mode == "idle":
             return False
-        if "seleccionar todo" in normalized:
+        if normalized == "seleccionar todo":
             self._emit_log("Ejecutando CTRL+A.")
             with self._keyboard.pressed(Key.ctrl):
                 self._keyboard.press("a")
                 self._keyboard.release("a")
             return True
-        if "copiar" in normalized:
+        if normalized == "copiar":
             self._emit_log("Ejecutando CTRL+C.")
             with self._keyboard.pressed(Key.ctrl):
                 self._keyboard.press("c")
                 self._keyboard.release("c")
             return True
-        if "pegar" in normalized:
+        if normalized == "pegar":
             self._emit_log("Ejecutando CTRL+V.")
             with self._keyboard.pressed(Key.ctrl):
                 self._keyboard.press("v")
                 self._keyboard.release("v")
             return True
-        if "mejorar texto" in normalized:
+        if normalized == "mejorar texto":
             self._emit_log("Mejorando texto seleccionado con LanguageTool.")
             self._improve_selected_text()
             return True
@@ -88,6 +100,10 @@ class SpeechWorker(threading.Thread):
                 )
                 self._emit_log(f"Detalle: {exc}")
                 return
+        with self._keyboard.pressed(Key.ctrl):
+            self._keyboard.press("a")
+            self._keyboard.release("a")
+        time.sleep(0.05)
         with self._keyboard.pressed(Key.ctrl):
             self._keyboard.press("c")
             self._keyboard.release("c")
@@ -138,7 +154,7 @@ class SpeechWorker(threading.Thread):
             callback=audio_callback,
         ):
             self._emit_log("Microfono listo. Esperando comandos...")
-            self._toggle_listen(False)
+            self._set_mode("idle")
             while not self._stop_event.is_set():
                 try:
                     data = audio_queue.get(timeout=0.1)
@@ -152,7 +168,7 @@ class SpeechWorker(threading.Thread):
                     self._emit_log(f"Reconocido: {text}")
                     if self._handle_command(text):
                         continue
-                    if self._listening_mode:
+                    if self._mode == "dictation":
                         self._type_text(text)
 
     @staticmethod
@@ -170,6 +186,11 @@ class SpeechWorker(threading.Thread):
             return text
         stripped = text.strip()
         stripped = stripped[0].upper() + stripped[1:]
+        stripped = re.sub(
+            r"([.!?]\s+)([a-záéíóúñ])",
+            lambda match: f"{match.group(1)}{match.group(2).upper()}",
+            stripped,
+        )
         stripped = re.sub(
             r"^(Honestamente|Sinceramente|Realmente)(\s+)",
             r"\1, ",
