@@ -1,5 +1,6 @@
 import json
 import queue
+import re
 import threading
 import time
 from dataclasses import dataclass
@@ -96,7 +97,8 @@ class SpeechWorker(threading.Thread):
             self._emit_log("No hay texto seleccionado para mejorar.")
             return
         improved = self._tool.correct(original_text)
-        pyperclip.copy(improved)
+        polished = self._polish_text(improved)
+        pyperclip.copy(polished)
         with self._keyboard.pressed(Key.ctrl):
             self._keyboard.press("v")
             self._keyboard.release("v")
@@ -161,6 +163,47 @@ class SpeechWorker(threading.Thread):
             return ""
         text = payload.get("text", "")
         return text.strip()
+
+    @staticmethod
+    def _polish_text(text: str) -> str:
+        if not text:
+            return text
+        stripped = text.strip()
+        stripped = stripped[0].upper() + stripped[1:]
+        stripped = re.sub(
+            r"^(Honestamente|Sinceramente|Realmente)(\s+)",
+            r"\1, ",
+            stripped,
+            flags=re.IGNORECASE,
+        )
+        stripped = re.sub(
+            r"(de todas las cosas posibles que se podían hacer)(\s+)",
+            r"\1, ",
+            stripped,
+            flags=re.IGNORECASE,
+        )
+        stripped = re.sub(r"\bcercano\s+ti\b", "cercano a ti", stripped, flags=re.IGNORECASE)
+        stripped = re.sub(
+            r"\btirando todo a la basura\b",
+            "tirarlo todo a la basura",
+            stripped,
+            flags=re.IGNORECASE,
+        )
+        stripped = re.sub(
+            r"(?<![.!?])\s+(Al fin y al cabo)",
+            r". \1",
+            stripped,
+            flags=re.IGNORECASE,
+        )
+        stripped = re.sub(
+            r"\b(Al fin y al cabo)(?![,.!?])",
+            r"\1,",
+            stripped,
+            flags=re.IGNORECASE,
+        )
+        if stripped[-1] not in ".!?":
+            stripped += "."
+        return stripped
 
 
 class AssistantController:
