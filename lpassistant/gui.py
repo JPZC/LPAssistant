@@ -43,7 +43,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.title = QtWidgets.QLabel("LP Assistant")
         self.title.setObjectName("Title")
         self.subtitle = QtWidgets.QLabel(
-            "Activa el dictado con \"Escuchar\" y detenlo con \"Detener\"."
+            "Activa el dictado con \"Escuchar\", comandos con \"Escuchar comandos\" y detenlo con \"Detener\"."
         )
         self.subtitle.setObjectName("Subtitle")
         header_layout.addWidget(self.title)
@@ -60,6 +60,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         commands = [
             ("Escuchar", "Inicia la transcripción global."),
+            ("Escuchar comandos", "Escucha comandos sin transcribir."),
             ("Detener", "Detiene la transcripción."),
             ("Seleccionar todo", "Envía CTRL + A."),
             ("Copiar", "Envía CTRL + C."),
