@@ -60,6 +60,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
         toolbox = QtWidgets.QToolBox()
         toolbox.setObjectName("CommandSections")
+        toolbox.setStyleSheet("""
+            QToolBox::tab {
+                padding-top: 60px;
+                padding-bottom: 60px;
+                min-height: 60px; 
+            }
+        """)
         controls_layout.addWidget(toolbox)
 
         def add_section(title: str, items: list[tuple[str, str]]) -> None:
@@ -90,15 +97,15 @@ class MainWindow(QtWidgets.QMainWindow):
         add_section(
             "Edición rápida",
             [
+                ("Mejorar texto", "Corrige ortografía y puntuación."),
                 ("Seleccionar todo", "Envía CTRL + A."),
                 ("Copiar", "Envía CTRL + C."),
                 ("Pegar", "Envía CTRL + V."),
                 ("Deshacer / Rehacer", "Envía CTRL + Z / CTRL + Y."),
                 ("Guardar", "Envía CTRL + S."),
                 ("Cerrar pestaña / ventana", "Envía CTRL + W / ALT + F4."),
-                ("Salto de línea", "Inserta una nueva línea."),
+                ("Salto de línea", "Inserta una nueva línea (Enter)."),
                 ("Borrar última palabra", "Envía CTRL + Backspace."),
-                ("Mejorar texto", "Corrige ortografía y puntuación."),
             ],
         )
         add_section(
