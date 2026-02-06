@@ -43,7 +43,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.title = QtWidgets.QLabel("LP Assistant")
         self.title.setObjectName("Title")
         self.subtitle = QtWidgets.QLabel(
-            "Activa el dictado con \"Escuchar\", comandos con \"Escuchar comandos\" y detenlo con \"Detener\"."
+            "Dicta con \"Escuchar\", usa \"Escuchar libremente\" para dictado sin comandos, "
+            "activa comandos con \"Escuchar comandos\" y detén con \"Detener\"."
         )
         self.subtitle.setObjectName("Subtitle")
         header_layout.addWidget(self.title)
@@ -59,13 +60,25 @@ class MainWindow(QtWidgets.QMainWindow):
         controls_layout.setVerticalSpacing(12)
 
         commands = [
-            ("Escuchar", "Inicia la transcripción global."),
+            ("Escuchar", "Inicia la transcripción global con puntuación por voz."),
+            ("Escuchar libremente", "Dictado sin comandos ni puntuación por voz."),
             ("Escuchar comandos", "Escucha comandos sin transcribir."),
             ("Detener", "Detiene la transcripción."),
             ("Seleccionar todo", "Envía CTRL + A."),
             ("Copiar", "Envía CTRL + C."),
             ("Pegar", "Envía CTRL + V."),
+            ("Deshacer / Rehacer", "Envía CTRL + Z / CTRL + Y."),
+            ("Guardar", "Envía CTRL + S."),
+            ("Cerrar pestaña / ventana", "Envía CTRL + W / ALT + F4."),
+            ("Salto de línea", "Inserta una nueva línea."),
+            ("Borrar última palabra", "Envía CTRL + Backspace."),
+            ("Mover cursor (izq/der/arriba/abajo)", "Usa flechas del teclado."),
+            ("Mover cursor palabra (izq/der)", "Envía CTRL + flecha."),
+            ("Inicio/Fin de línea", "Usa teclas Home y End."),
+            ("Página arriba / abajo", "Usa Page Up / Page Down."),
+            ("Mover teclado (atrás)", "Usa Tab / Shift + Tab."),
             ("Mejorar texto", "Corrige ortografía y puntuación."),
+            ("Puntuación", "Punto, coma, dos puntos, signos y más en dictado."),
         ]
         for row, (command, description) in enumerate(commands):
             cmd_label = QtWidgets.QLabel(command)

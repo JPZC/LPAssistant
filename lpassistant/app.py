@@ -3,6 +3,7 @@ import queue
 import re
 import threading
 import time
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -43,18 +44,24 @@ class SpeechWorker(threading.Thread):
             "idle": "En espera",
             "dictation": "Escuchando (dictado)",
             "commands": "Escuchando comandos",
+            "free": "Escuchando (libre)",
         }
         self.events.put(status_map.get(mode, "En espera"))
 
     @staticmethod
     def _normalize_text(text: str) -> str:
-        return re.sub(r"\s+", " ", text.lower()).strip()
+        collapsed = re.sub(r"\s+", " ", text.lower()).strip()
+        return SpeechWorker._strip_accents(collapsed)
 
-    def _handle_command(self, text: str) -> bool:
+    def _handle_command(self, text: str, allow_commands: bool = True) -> bool:
         normalized = self._normalize_text(text)
         if normalized == "escuchar" and self._mode != "dictation":
             self._emit_log("Activando modo dictado.")
             self._set_mode("dictation")
+            return True
+        if normalized == "escuchar libremente" and self._mode != "free":
+            self._emit_log("Activando modo libre (sin comandos ni puntuación).")
+            self._set_mode("free")
             return True
         if normalized == "escuchar comandos" and self._mode != "commands":
             self._emit_log("Activando modo comandos.")
@@ -64,7 +71,7 @@ class SpeechWorker(threading.Thread):
             self._emit_log("Deteniendo escucha.")
             self._set_mode("idle")
             return True
-        if self._mode == "idle":
+        if self._mode == "idle" or not allow_commands:
             return False
         if normalized == "seleccionar todo":
             self._emit_log("Ejecutando CTRL+A.")
@@ -83,6 +90,98 @@ class SpeechWorker(threading.Thread):
             with self._keyboard.pressed(Key.ctrl):
                 self._keyboard.press("v")
                 self._keyboard.release("v")
+            return True
+        if normalized == "deshacer":
+            self._emit_log("Ejecutando CTRL+Z.")
+            self._press_combo([Key.ctrl], "z")
+            return True
+        if normalized == "rehacer":
+            self._emit_log("Ejecutando CTRL+Y.")
+            self._press_combo([Key.ctrl], "y")
+            return True
+        if normalized == "guardar":
+            self._emit_log("Ejecutando CTRL+S.")
+            self._press_combo([Key.ctrl], "s")
+            return True
+        if normalized == "cerrar pestaña":
+            self._emit_log("Ejecutando CTRL+W.")
+            self._press_combo([Key.ctrl], "w")
+            return True
+        if normalized == "cerrar ventana":
+            self._emit_log("Ejecutando ALT+F4.")
+            self._press_combo([Key.alt], Key.f4)
+            return True
+        if normalized in {"salto de linea", "salto de línea", "nueva linea", "nueva línea"}:
+            self._emit_log("Insertando salto de línea.")
+            self._keyboard.press(Key.enter)
+            self._keyboard.release(Key.enter)
+            return True
+        if normalized in {"borrar ultima palabra", "borrar última palabra"}:
+            self._emit_log("Borrando última palabra (CTRL+Backspace).")
+            self._press_combo([Key.ctrl], Key.backspace)
+            return True
+        if normalized in {"borrar linea", "borrar línea"}:
+            self._emit_log("Borrando línea actual.")
+            self._press_combo([Key.ctrl], "l")
+            return True
+        if normalized == "mover cursor izquierda":
+            self._emit_log("Moviendo cursor a la izquierda.")
+            self._keyboard.press(Key.left)
+            self._keyboard.release(Key.left)
+            return True
+        if normalized == "mover cursor derecha":
+            self._emit_log("Moviendo cursor a la derecha.")
+            self._keyboard.press(Key.right)
+            self._keyboard.release(Key.right)
+            return True
+        if normalized == "mover cursor arriba":
+            self._emit_log("Moviendo cursor arriba.")
+            self._keyboard.press(Key.up)
+            self._keyboard.release(Key.up)
+            return True
+        if normalized == "mover cursor abajo":
+            self._emit_log("Moviendo cursor abajo.")
+            self._keyboard.press(Key.down)
+            self._keyboard.release(Key.down)
+            return True
+        if normalized == "mover cursor palabra izquierda":
+            self._emit_log("Moviendo cursor una palabra a la izquierda.")
+            self._press_combo([Key.ctrl], Key.left)
+            return True
+        if normalized == "mover cursor palabra derecha":
+            self._emit_log("Moviendo cursor una palabra a la derecha.")
+            self._press_combo([Key.ctrl], Key.right)
+            return True
+        if normalized in {"inicio de linea", "inicio de línea", "ir al inicio"}:
+            self._emit_log("Moviendo cursor al inicio de la línea.")
+            self._keyboard.press(Key.home)
+            self._keyboard.release(Key.home)
+            return True
+        if normalized in {"fin de linea", "fin de línea", "ir al final"}:
+            self._emit_log("Moviendo cursor al final de la línea.")
+            self._keyboard.press(Key.end)
+            self._keyboard.release(Key.end)
+            return True
+        if normalized == "pagina arriba":
+            self._emit_log("Desplazando página arriba.")
+            self._keyboard.press(Key.page_up)
+            self._keyboard.release(Key.page_up)
+            return True
+        if normalized == "pagina abajo":
+            self._emit_log("Desplazando página abajo.")
+            self._keyboard.press(Key.page_down)
+            self._keyboard.release(Key.page_down)
+            return True
+        if normalized == "mover teclado":
+            self._emit_log("Moviendo foco al siguiente campo (Tab).")
+            self._keyboard.press(Key.tab)
+            self._keyboard.release(Key.tab)
+            return True
+        if normalized == "mover teclado atras":
+            self._emit_log("Moviendo foco al campo anterior (Shift+Tab).")
+            with self._keyboard.pressed(Key.shift):
+                self._keyboard.press(Key.tab)
+                self._keyboard.release(Key.tab)
             return True
         if normalized == "mejorar texto":
             self._emit_log("Mejorando texto seleccionado con LanguageTool.")
@@ -121,7 +220,26 @@ class SpeechWorker(threading.Thread):
         self._emit_log("Texto mejorado y pegado.")
 
     def _type_text(self, text: str) -> None:
-        self._keyboard.type(text + " ")
+        if not text:
+            return
+        self._keyboard.type(text)
+        if not text.endswith("\n"):
+            self._keyboard.type(" ")
+
+    def _press_combo(self, modifiers: list[Key], key) -> None:
+        if not modifiers:
+            self._keyboard.press(key)
+            self._keyboard.release(key)
+            return
+        if len(modifiers) == 1:
+            with self._keyboard.pressed(modifiers[0]):
+                self._keyboard.press(key)
+                self._keyboard.release(key)
+            return
+        with self._keyboard.pressed(modifiers[0]):
+            with self._keyboard.pressed(modifiers[1]):
+                self._keyboard.press(key)
+                self._keyboard.release(key)
 
     def run(self) -> None:
         model_path = Path(self.config.model_path)
@@ -166,10 +284,15 @@ class SpeechWorker(threading.Thread):
                     if not text:
                         continue
                     self._emit_log(f"Reconocido: {text}")
-                    if self._handle_command(text):
+                    if self._mode == "free":
+                        if self._handle_command(text, allow_commands=False):
+                            continue
+                        self._type_text(text)
+                        continue
+                    if self._handle_command(text, allow_commands=True):
                         continue
                     if self._mode == "dictation":
-                        self._type_text(text)
+                        self._type_text(self._apply_voice_punctuation(text))
 
     @staticmethod
     def _extract_text(result: str) -> str:
@@ -179,6 +302,58 @@ class SpeechWorker(threading.Thread):
             return ""
         text = payload.get("text", "")
         return text.strip()
+
+    @staticmethod
+    def _strip_accents(value: str) -> str:
+        return "".join(
+            char
+            for char in unicodedata.normalize("NFD", value)
+            if unicodedata.category(char) != "Mn"
+        )
+
+    @classmethod
+    def _apply_voice_punctuation(cls, text: str) -> str:
+        if not text:
+            return text
+        tokens = text.split()
+        normalized = [cls._strip_accents(token.lower()) for token in tokens]
+        phrases = {
+            ("punto", "y", "coma"): ";",
+            ("puntos", "suspensivos"): "...",
+            ("dos", "puntos"): ":",
+            ("salto", "de", "linea"): "\n",
+            ("nueva", "linea"): "\n",
+            ("signo", "de", "interrogacion"): "?",
+            ("signo", "de", "exclamacion"): "!",
+            ("interrogacion",): "?",
+            ("exclamacion",): "!",
+            ("punto",): ".",
+            ("coma",): ",",
+        }
+        phrase_lengths = sorted({len(key) for key in phrases}, reverse=True)
+        output: list[str] = []
+        idx = 0
+        while idx < len(tokens):
+            matched = False
+            for length in phrase_lengths:
+                if idx + length > len(tokens):
+                    continue
+                key = tuple(normalized[idx : idx + length])
+                if key in phrases:
+                    output.append(phrases[key])
+                    idx += length
+                    matched = True
+                    break
+            if matched:
+                continue
+            output.append(tokens[idx])
+            idx += 1
+        assembled = " ".join(output)
+        assembled = re.sub(r"\s+([,.:;!?])", r"\1", assembled)
+        assembled = re.sub(r"\s*\.\.\.\s*", "...", assembled)
+        assembled = re.sub(r"([,;:!?])(\S)", r"\1 \2", assembled)
+        assembled = re.sub(r"\s*\n\s*", "\n", assembled)
+        return assembled
 
     @staticmethod
     def _polish_text(text: str) -> str:
