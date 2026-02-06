@@ -12,6 +12,7 @@ import language_tool_python
 import pyperclip
 import sounddevice as sd
 from pynput.keyboard import Controller, Key
+from pynput.mouse import Button, Controller as MouseController
 from vosk import KaldiRecognizer, Model
 
 
@@ -30,6 +31,7 @@ class SpeechWorker(threading.Thread):
         self._stop_event = threading.Event()
         self._mode = "idle"
         self._keyboard = Controller()
+        self._mouse = MouseController()
         self._tool: Optional[language_tool_python.LanguageTool] = None
 
     def stop(self) -> None:
@@ -186,6 +188,24 @@ class SpeechWorker(threading.Thread):
         if normalized == "mejorar texto":
             self._emit_log("Mejorando texto seleccionado con LanguageTool.")
             self._improve_selected_text()
+            return True
+        if normalized in {"click", "clic"}:
+            self._emit_log("Ejecutando click izquierdo.")
+            self._mouse.click(Button.left, 1)
+            return True
+        if normalized in {"click derecho", "clic derecho"}:
+            self._emit_log("Ejecutando click derecho.")
+            self._mouse.click(Button.right, 1)
+            return True
+        if normalized in {"doble click", "doble clic"}:
+            self._emit_log("Ejecutando doble click.")
+            self._mouse.click(Button.left, 2)
+            return True
+        if normalized in {"click pulsado", "clic pulsado"}:
+            self._emit_log("Ejecutando click pulsado.")
+            self._mouse.press(Button.left)
+            time.sleep(0.4)
+            self._mouse.release(Button.left)
             return True
         return False
 
