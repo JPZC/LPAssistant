@@ -16,6 +16,7 @@ LP Assistant es un asistente de voz pensado para Windows 11 que dicta texto en c
 - Windows 11
 - Python 3.10+
 - Micrófono disponible
+- `setuptools` (necesario en Python 3.12+ para LanguageTool)
 
 ## Instalación
 
@@ -50,3 +51,4 @@ python -m lpassistant.gui
 
 - El asistente escucha continuamente las palabras clave "Escuchar" y "Detener" para activar o detener el dictado.
 - Para "Mejorar texto", selecciona el texto en cualquier aplicación antes de dictar el comando.
+- Si aparece el estado "Modelo no encontrado", verifica que descargaste el modelo Vosk y que la carpeta exista en `lpassistant/models/`.

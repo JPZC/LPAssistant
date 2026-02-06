@@ -3,6 +3,7 @@ import queue
 import threading
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional
 
 import language_tool_python
@@ -27,7 +28,7 @@ class SpeechWorker(threading.Thread):
         self._stop_event = threading.Event()
         self._listening_mode = False
         self._keyboard = Controller()
-        self._tool = language_tool_python.LanguageTool("es")
+        self._tool: Optional[language_tool_python.LanguageTool] = None
 
     def stop(self) -> None:
         self._stop_event.set()
@@ -77,6 +78,15 @@ class SpeechWorker(threading.Thread):
         return False
 
     def _improve_selected_text(self) -> None:
+        if self._tool is None:
+            try:
+                self._tool = language_tool_python.LanguageTool("es")
+            except Exception as exc:  # noqa: BLE001 - log and keep assistant running
+                self._emit_log(
+                    "No se pudo iniciar LanguageTool. Instala setuptools si usas Python 3.12+."
+                )
+                self._emit_log(f"Detalle: {exc}")
+                return
         with self._keyboard.pressed(Key.ctrl):
             self._keyboard.press("c")
             self._keyboard.release("c")
@@ -96,7 +106,19 @@ class SpeechWorker(threading.Thread):
         self._keyboard.type(text + " ")
 
     def run(self) -> None:
-        model = Model(self.config.model_path)
+        model_path = Path(self.config.model_path)
+        if not model_path.exists():
+            self._emit_log(
+                f"Modelo Vosk no encontrado en: {model_path}. Descárgalo y verifica la ruta."
+            )
+            self.events.put("Modelo no encontrado")
+            return
+        try:
+            model = Model(str(model_path))
+        except Exception as exc:  # noqa: BLE001 - surface model load errors
+            self._emit_log(f"No se pudo cargar el modelo Vosk: {exc}")
+            self.events.put("Error de modelo")
+            return
         recognizer = KaldiRecognizer(model, self.config.sample_rate)
         recognizer.SetWords(True)
         audio_queue: "queue.Queue[bytes]" = queue.Queue()

@@ -38,6 +38,12 @@ QWidget {
   border: 1px solid #8a4c14;
 }
 
+#StatusBadge[mode="Modelo no encontrado"],
+#StatusBadge[mode="Error de modelo"] {
+  background-color: #2b1010;
+  border: 1px solid #7b1f1f;
+}
+
 #StatusLabel {
   font-weight: 600;
 }
