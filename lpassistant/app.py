@@ -1,9 +1,12 @@
 import json
+import os
 import queue
 import re
 import threading
 import time
 import unicodedata
+import urllib.error
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -189,6 +192,10 @@ class SpeechWorker(threading.Thread):
             self._emit_log("Mejorando texto seleccionado con LanguageTool.")
             self._improve_selected_text()
             return True
+        if normalized == "corregir texto":
+            self._emit_log("Corrigiendo texto seleccionado con Groq.")
+            self._correct_selected_text_groq()
+            return True
         if normalized in {"click", "clic"}:
             self._emit_log("Ejecutando click izquierdo.")
             self._mouse.click(Button.left, 1)
@@ -238,6 +245,79 @@ class SpeechWorker(threading.Thread):
             self._keyboard.press("v")
             self._keyboard.release("v")
         self._emit_log("Texto mejorado y pegado.")
+
+    def _correct_selected_text_groq(self) -> None:
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            self._emit_log("Falta la variable de entorno GROQ_API_KEY para usar Groq.")
+            return
+        with self._keyboard.pressed(Key.ctrl):
+            self._keyboard.press("a")
+            self._keyboard.release("a")
+        time.sleep(0.05)
+        with self._keyboard.pressed(Key.ctrl):
+            self._keyboard.press("c")
+            self._keyboard.release("c")
+        time.sleep(0.1)
+        original_text = pyperclip.paste()
+        if not original_text.strip():
+            self._emit_log("No hay texto seleccionado para corregir.")
+            return
+        payload = {
+            "model": "llama-3.1-8b-instant",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "Eres un corrector de estilo en español. "
+                        "Corrige ortografía, acentuación, puntuación y mayúsculas "
+                        "sin cambiar el sentido. Devuelve solo el texto corregido."
+                    ),
+                },
+                {"role": "user", "content": original_text},
+            ],
+            "temperature": 0.2,
+        }
+        request = urllib.request.Request(
+            "https://api.groq.com/openai/v1/chat/completions",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=20) as response:
+                body = response.read().decode("utf-8")
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode("utf-8", errors="replace")
+            self._emit_log("Error al corregir texto con Groq (HTTP).")
+            self._emit_log(f"Detalle: {detail}")
+            return
+        except urllib.error.URLError as exc:
+            self._emit_log("Error al conectar con Groq.")
+            self._emit_log(f"Detalle: {exc}")
+            return
+        except Exception as exc:  # noqa: BLE001 - keep assistant running
+            self._emit_log("Error inesperado al usar Groq.")
+            self._emit_log(f"Detalle: {exc}")
+            return
+        try:
+            parsed = json.loads(body)
+            corrected = parsed["choices"][0]["message"]["content"].strip()
+        except (json.JSONDecodeError, KeyError, IndexError) as exc:
+            self._emit_log("Respuesta inválida de Groq al corregir texto.")
+            self._emit_log(f"Detalle: {exc}")
+            return
+        if not corrected:
+            self._emit_log("Groq devolvió un texto vacío.")
+            return
+        pyperclip.copy(corrected)
+        with self._keyboard.pressed(Key.ctrl):
+            self._keyboard.press("v")
+            self._keyboard.release("v")
+        self._emit_log("Texto corregido y pegado.")
 
     def _type_text(self, text: str) -> None:
         if not text:

@@ -20,6 +20,7 @@ LP Assistant es un asistente de voz pensado para Windows 11 que dicta texto en c
 - **Página arriba / abajo**: envía `Page Up` / `Page Down`.
 - **Mover teclado**: envía `Tab` / `Shift + Tab`.
 - **Mejorar texto**: corrige ortografía, mayúsculas y puntuación con LanguageTool (gratis).
+- **Corregir texto**: corrige ortografía y tildes con Groq (requiere API Key).
 
 ## Requisitos
 
@@ -27,6 +28,7 @@ LP Assistant es un asistente de voz pensado para Windows 11 que dicta texto en c
 - Python 3.10+
 - Micrófono disponible
 - `setuptools` (necesario en Python 3.12+ para LanguageTool)
+- API Key de Groq (para "Corregir texto")
 
 ## Instalación
 
@@ -57,8 +59,23 @@ lpassistant/
 python -m lpassistant.gui
 ```
 
+### Configurar Groq
+
+Para usar el comando **"Corregir texto"**, define la API Key de Groq en la variable de entorno `GROQ_API_KEY`:
+
+```bash
+# PowerShell
+$env:GROQ_API_KEY="tu_api_key"
+
+# CMD
+set GROQ_API_KEY=tu_api_key
+```
+
+La clave se obtiene en https://console.groq.com/keys.
+
 ## Notas
 
 - El asistente escucha continuamente las palabras clave "Escuchar", "Escuchar libremente", "Escuchar comandos" y "Detener".
 - Para "Mejorar texto", selecciona el texto en cualquier aplicación antes de dictar el comando.
+- Para "Corregir texto", selecciona el texto y asegúrate de tener `GROQ_API_KEY` configurada.
 - Si aparece el estado "Modelo no encontrado", verifica que descargaste el modelo Vosk y que la carpeta exista en `lpassistant/models/`.
