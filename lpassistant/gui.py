@@ -98,6 +98,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "Edición rápida",
             [
                 ("Mejorar texto", "Corrige ortografía y puntuación."),
+                ("Corregir texto", "Corrige ortografía y tildes con Groq."),
                 ("Seleccionar todo", "Envía CTRL + A."),
                 ("Copiar", "Envía CTRL + C."),
                 ("Pegar", "Envía CTRL + V."),
