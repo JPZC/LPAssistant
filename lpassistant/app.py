@@ -284,6 +284,7 @@ class SpeechWorker(threading.Thread):
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
+                "User-Agent": "LPAssistant/1.0 (+https://github.com/)",
             },
             method="POST",
         )
